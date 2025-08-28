@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+minio:
+  endpoint: http://localhost:9000
+  accessKey: omar
+  secretKey: omaromar
+  bucket: uploads
+
+spring:
+  application:
+    name: secure-media-vault
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: omar
+    password: omar
+
+app:
+  rabbit:
+    exchange: app.exchange
+    routingKey: file.uploaded
+    queue: app.queue
+    downloadedRoutingKey: file.downloaded
+    downloadedQueue: app.queue.downloaded
