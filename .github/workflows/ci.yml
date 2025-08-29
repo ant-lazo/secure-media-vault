@@ -1,0 +1,112 @@
+name: CI to ACR
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+env:
+  IMAGE_NAME: ${{ secrets.ACR_LOGIN_SERVER }}/miapp  # Cambia "miapp" si deseas
+  DOCKER_BUILDKIT: 1
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: 'gradle'
+
+      # Ajusta a los linters que realmente tengas (Spotless/Checkstyle/PMD, etc.)
+      - name: Gradle lint (Spotless/Checkstyle si aplica)
+        run: |
+          ./gradlew --version
+          ./gradlew --no-daemon spotlessCheck || true
+          ./gradlew --no-daemon checkstyleMain || true
+
+  unit_tests:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Run unit tests
+        run: ./gradlew --no-daemon test
+
+  build_jar:
+    runs-on: ubuntu-latest
+    needs: unit_tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: 'gradle'
+
+      # Si es Spring Boot:
+      - name: Build JAR (bootJar)
+        run: ./gradlew --no-daemon clean bootJar
+      # Si NO usas Spring Boot, reemplaza por:
+      # run: ./gradlew --no-daemon clean jar
+
+      - name: Upload artifact (JAR)
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: build/libs/*.jar
+
+  docker_build_push:
+    runs-on: ubuntu-latest
+    needs: build_jar
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jar
+          path: build/
+
+      - name: Login to ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Compute TAG
+        id: tag
+        run: echo "TAG=$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Detect JAR name
+        id: jar
+        run: |
+          JAR=$(ls build/*.jar | head -n 1 | xargs -n1 basename)
+          echo "JAR_FILE=$JAR" >> $GITHUB_OUTPUT
+          echo "Using JAR_FILE=$JAR"
+
+      - name: Build & Push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}
+            ${{ env.IMAGE_NAME }}:latest
+          build-args: |
+            JAR_FILE=${{ steps.jar.outputs.JAR_FILE }}
