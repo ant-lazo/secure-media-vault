@@ -86,7 +86,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: app-jar
-          path: build/
+          path: build/libs
 
       - name: Login to ACR
         uses: docker/login-action@v3
