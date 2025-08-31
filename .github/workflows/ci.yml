@@ -102,6 +102,7 @@ jobs:
       - name: Detect JAR name
         id: jar
         run: |
+          ls -lah build/libs
           JAR=$(ls build/*.jar | head -n 1 | xargs -n1 basename)
           echo "JAR_FILE=$JAR" >> $GITHUB_OUTPUT
           echo "Using JAR_FILE=$JAR"
