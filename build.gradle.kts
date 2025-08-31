@@ -1,12 +1,13 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import io.gitlab.arturbosch.detekt.Detekt
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
 	id("org.springframework.boot") version "3.3.2"
 	id("io.spring.dependency-management") version "1.1.6"
 	id("io.gitlab.arturbosch.detekt") version "1.23.7"
-	kotlin("jvm") version "1.9.24"
-	kotlin("plugin.spring") version "1.9.24"
+	kotlin("jvm") version "2.0.10"
+	kotlin("plugin.spring") version "2.0.10"
 }
 
 group = "309technology.vcm.omar"
@@ -44,10 +45,10 @@ dependencies {
 }
 
 
-tasks.withType<KotlinCompile> {
-	kotlinOptions {
-		freeCompilerArgs = listOf("-Xjsr305=strict")
-		jvmTarget = "17"
+tasks.withType<KotlinCompile>().configureEach {
+	compilerOptions {
+		jvmTarget.set(JvmTarget.JVM_17)
+		freeCompilerArgs.add("-Xjsr305=strict")
 	}
 }
 
