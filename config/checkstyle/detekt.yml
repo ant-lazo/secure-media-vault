@@ -44,7 +44,7 @@ formatting:
   android: false
   autoCorrect: true
   FinalNewline:
-    active: true
+    active: false
   NoWildcardImports:
     active: false     # permite imports con * si lo prefieres
   Indentation:
