@@ -22,7 +22,6 @@ class UploadController(
     @PostMapping(consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     fun upload(@RequestPart("file") file: FilePart): Mono<UploadResponse> = mono {
         val objectName = fileService.saveToMinio(file)
-        val payload = mapOf("objectName" to objectName, "filename" to file.filename(), "event" to "FILE_UPLOADED")
         fileService.publishFileUploaded(objectName, file.filename())
         UploadResponse(objectName, true)
     }
