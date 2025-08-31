@@ -1,9 +1,10 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
+import io.gitlab.arturbosch.detekt.Detekt
 
 plugins {
 	id("org.springframework.boot") version "3.3.2"
 	id("io.spring.dependency-management") version "1.1.6"
+	id("io.gitlab.arturbosch.detekt") version "1.23.6"
 	kotlin("jvm") version "1.9.24"
 	kotlin("plugin.spring") version "1.9.24"
 }
@@ -37,6 +38,9 @@ dependencies {
 	// Testing
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("io.projectreactor:reactor-test")
+
+	// Checkstyle Kotlin
+	detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.6")
 }
 
 
@@ -49,3 +53,21 @@ tasks.withType<KotlinCompile> {
 
 
 tasks.withType<Test> { useJUnitPlatform() }
+
+detekt {
+	buildUponDefaultConfig = true
+	allRules = false
+	config.setFrom("config/checkstyle/detekt.yml")
+	// (Opcional) baseline para silenciar issues existentes:
+	// baseline = file("config/detekt/baseline.xml")
+}
+
+tasks.withType<Detekt>().configureEach {
+	setSource(files("src/main/kotlin", "src/test/kotlin"))
+	reports {
+		xml.required.set(true)
+		html.required.set(true)
+		sarif.required.set(true)
+		txt.required.set(false)
+	}
+}

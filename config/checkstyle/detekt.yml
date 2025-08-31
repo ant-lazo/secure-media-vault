@@ -1,0 +1,50 @@
+processors:
+  active: true
+
+config:
+  validation: true
+
+build:
+  maxIssues: 0
+  excludeCorrectable: false
+
+# Reglas principales
+style:
+  MagicNumber:
+    active: false
+  WildcardImport:
+    active: true
+  UnusedImports:
+    active: true
+  MaxLineLength:
+    active: true
+    maxLineLength: 120
+
+naming:
+  MatchingDeclarationName:
+    active: true
+  TopLevelPropertyNaming:
+    active: false
+  PackageNaming:
+    active: true
+
+performance:
+  SpreadOperator:
+    active: true
+
+potential-bugs:
+  DuplicateCaseInWhenExpression:
+    active: true
+
+# Formateo (ktlint a través de detekt-formatting)
+formatting:
+  active: true
+  android: false
+  autoCorrect: true
+  FinalNewline:
+    active: true
+  NoWildcardImports:
+    active: false     # permite imports con * si lo prefieres
+  Indentation:
+    active: true
+    indentSize: 4

@@ -22,12 +22,18 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      # Ajusta a los linters que realmente tengas (Spotless/Checkstyle/PMD, etc.)
-      - name: Gradle lint (Spotless/Checkstyle si aplica)
-        run: |
-          ./gradlew --version
-          ./gradlew --no-daemon spotlessCheck || true
-          ./gradlew --no-daemon checkstyleMain || true
+      # Detekt (Kotlin + formato)
+      - name: Run Detekt
+        run: ./gradlew --no-daemon detekt
+
+      - name: Upload Detekt reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: detekt-reports
+          path: |
+            **/build/reports/detekt/*.html
+            **/build/reports/detekt/*.xml
+            **/build/reports/detekt/*.sarif
 
   unit_tests:
     runs-on: ubuntu-latest
