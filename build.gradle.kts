@@ -4,7 +4,7 @@ import io.gitlab.arturbosch.detekt.Detekt
 plugins {
 	id("org.springframework.boot") version "3.3.2"
 	id("io.spring.dependency-management") version "1.1.6"
-	id("io.gitlab.arturbosch.detekt") version "1.23.6"
+	id("io.gitlab.arturbosch.detekt") version "1.23.7"
 	kotlin("jvm") version "1.9.24"
 	kotlin("plugin.spring") version "1.9.24"
 }
@@ -40,7 +40,7 @@ dependencies {
 	testImplementation("io.projectreactor:reactor-test")
 
 	// Checkstyle Kotlin
-	detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.6")
+	detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.7")
 }
 
 
