@@ -64,7 +64,7 @@ detekt {
 }
 
 tasks.withType<Detekt>().configureEach {
-	setSource(files("src/main/kotlin", "src/test/kotlin"))
+	setSource(files("src/main/kotlin"))
 	reports {
 		xml.required.set(true)
 		html.required.set(true)

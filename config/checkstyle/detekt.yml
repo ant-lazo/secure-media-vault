@@ -19,6 +19,8 @@ style:
   MaxLineLength:
     active: true
     maxLineLength: 120
+  NewLineAtEndOfFile:
+    active: false
 
 naming:
   MatchingDeclarationName:

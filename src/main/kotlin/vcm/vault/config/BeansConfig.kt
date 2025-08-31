@@ -64,5 +64,4 @@ class BeansConfig(
         BindingBuilder.bind(downloadedQueue())
             .to(exchange())
             .with(rabbit.downloadedRoutingKey)
-
 }
