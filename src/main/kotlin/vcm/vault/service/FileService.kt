@@ -16,7 +16,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
 
-
 @Service
 class FileService(
     private val minio: MinioClient,
@@ -35,10 +34,8 @@ class FileService(
 // Transfer FilePart to disk (reactive -> await completion)
             file.transferTo(tmp).await()
 
-
             val objectName = buildObjectName(file.filename())
             val size = Files.size(tmp)
-
 
 // Blocking MinIO call wrapped in IO dispatcher
             withContext(Dispatchers.IO) {
@@ -59,11 +56,6 @@ class FileService(
         }
     }
 
-
-    /**
-     * Publishes a message to RabbitMQ (blocking template wrapped in IO dispatcher).
-     */
-
     suspend fun publishFileUploaded(objectName: String, filename: String) {
         val evt = FileUploadedEvent(objectName = objectName, filename = filename)
         withContext(Dispatchers.IO) {
@@ -71,11 +63,9 @@ class FileService(
         }
     }
 
-
     private fun buildObjectName(original: String): String =
         "${Instant.now().toEpochMilli()}-${original.replace(" ", "_")}"
 }
-
 
 // small await extension for Mono<Void>
 private suspend fun Mono<Void>.await() =

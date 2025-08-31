@@ -17,7 +17,6 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
 
-
 @Configuration
 class BeansConfig(
     @Value("\${minio.endpoint}") private val endpoint: String,
@@ -37,7 +36,6 @@ class BeansConfig(
             .credentials(accessKey, secretKey)
             .build()
 
-
     // ensure bucket exists on startup
     @Bean
     fun ensureBucket(minio: MinioClient): Any {
@@ -47,7 +45,6 @@ class BeansConfig(
         }
         return Any()
     }
-
 
     // RabbitMQ topology
     @Bean fun exchange() = DirectExchange(exchangeName)
