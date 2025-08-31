@@ -33,7 +33,9 @@ performance:
     active: true
 
 potential-bugs:
-  DuplicateCaseInWhenExpression:
+  ImplicitDefaultLocale:
+    active: true
+  EqualsWithHashCodeExist:
     active: true
 
 # Formateo (ktlint a través de detekt-formatting)

@@ -7,49 +7,47 @@ import org.springframework.amqp.core.Binding
 import org.springframework.amqp.core.BindingBuilder
 import org.springframework.amqp.core.DirectExchange
 import org.springframework.amqp.core.Queue
-import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory
 import org.springframework.amqp.rabbit.connection.ConnectionFactory
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter
 import org.springframework.amqp.support.converter.MessageConverter
-import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
 
 @Configuration
+@EnableConfigurationProperties(MinioProps::class, AppRabbitProps::class)
 class BeansConfig(
-    @Value("\${minio.endpoint}") private val endpoint: String,
-    @Value("\${minio.accessKey}") private val accessKey: String,
-    @Value("\${minio.secretKey}") private val secretKey: String,
-    @Value("\${minio.bucket}") private val bucket: String,
-    @Value("\${app.rabbit.exchange}") private val exchangeName: String,
-    @Value("\${app.rabbit.queue}") private val queueName: String,
-    @Value("\${app.rabbit.routingKey}") private val routingKey: String,
-    @Value("\${app.rabbit.downloadedQueue}") private val downloadedQueueName: String,
-    @Value("\${app.rabbit.downloadedRoutingKey}") private val downloadedRoutingKey: String
+    private val minio: MinioProps,
+    private val rabbit: AppRabbitProps
 ) {
     @Bean
     fun minioClient(): MinioClient =
         MinioClient.builder()
-            .endpoint(endpoint)
-            .credentials(accessKey, secretKey)
+            .endpoint(minio.endpoint)
+            .credentials(minio.accessKey, minio.secretKey)
             .build()
 
     // ensure bucket exists on startup
     @Bean
-    fun ensureBucket(minio: MinioClient): Any {
-        val exists = minio.bucketExists(BucketExistsArgs.builder().bucket(bucket).build())
+    fun ensureBucket(minIo: MinioClient): Any {
+        val exists = minIo.bucketExists(BucketExistsArgs.builder().bucket(minio.bucket).build())
         if (!exists) {
-            minio.makeBucket(MakeBucketArgs.builder().bucket(bucket).build())
+            minIo.makeBucket(MakeBucketArgs.builder().bucket(minio.bucket).build())
         }
         return Any()
     }
 
     // RabbitMQ topology
-    @Bean fun exchange() = DirectExchange(exchangeName)
-    @Bean fun queue() = Queue(queueName, true)
-    @Bean fun binding(): Binding = BindingBuilder.bind(queue()).to(exchange()).with(routingKey)
+    @Bean
+    fun exchange() = DirectExchange(rabbit.exchange)
+
+    @Bean
+    fun queue() = Queue(rabbit.queue, true)
+
+    @Bean
+    fun binding(): Binding = BindingBuilder.bind(queue()).to(exchange()).with(rabbit.routingKey)
 
     @Bean fun jacksonMessageConverter(): MessageConverter = Jackson2JsonMessageConverter()
 
@@ -58,19 +56,13 @@ class BeansConfig(
     fun rabbitTemplate(cf: ConnectionFactory, conv: MessageConverter): RabbitTemplate =
         RabbitTemplate(cf).apply { messageConverter = conv }
 
-    @Bean // factory por defecto para @RabbitListener
-    fun rabbitListenerContainerFactory(cf: ConnectionFactory, conv: MessageConverter) =
-        SimpleRabbitListenerContainerFactory().apply {
-            setConnectionFactory(cf)
-            setMessageConverter(conv)
-        }
-
-    @Bean fun downloadedQueue() = Queue(downloadedQueueName, true)
+    @Bean
+    fun downloadedQueue() = Queue(rabbit.downloadedQueue, true)
 
     @Bean
     fun downloadedBinding(): Binding =
         BindingBuilder.bind(downloadedQueue())
             .to(exchange())
-            .with(downloadedRoutingKey)
+            .with(rabbit.downloadedRoutingKey)
 
 }
