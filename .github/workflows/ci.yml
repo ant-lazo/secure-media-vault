@@ -101,11 +101,22 @@ jobs:
 
       - name: Detect JAR name
         id: jar
+        shell: bash
         run: |
+          set -euo pipefail
+          shopt -s nullglob
+          echo "Contenido de build/libs:"
           ls -lah build/libs
-          JAR=$(ls build/libs/*.jar | head -n 1 | xargs -n1 basename)
-          echo "JAR_FILE=$JAR" >> $GITHUB_OUTPUT
-          echo "Using JAR_FILE=$JAR"
+
+          jars=(build/libs/*.jar)
+          if [[ ${#jars[@]} -eq 0 ]]; then
+            echo "::error::No se encontró ningún JAR en build/libs"
+            exit 1
+          fi
+
+          jarname="$(basename "${jars[0]}")"
+          echo "JAR_FILE=libs/${jarname}" >> "$GITHUB_OUTPUT"
+          echo "Using JAR_FILE=libs/${jarname}"
 
       - name: Build & Push image
         uses: docker/build-push-action@v6
