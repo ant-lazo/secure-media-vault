@@ -10,6 +10,13 @@ minio:
 spring:
   application:
     name: secure-media-vault
+  webflux:
+    cors:
+      mappings:
+        - path: /**
+          allowed-origins: "http://localhost:3000"
+          allowed-methods: "*"
+          allowed-headers: "*"
 
   rabbitmq:
     host: localhost
@@ -24,3 +31,15 @@ app:
     queue: app.queue
     downloadedRoutingKey: file.downloaded
     downloadedQueue: app.queue.downloaded
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+security:
+  jwt:
+    secret: P4v3k1H8yTq2Mz7RLpN9cS5wXaE6bJ0uF3dR8vT2qH6K1yM5Z9
+    issuer: vcm.vault
+    expiration-seconds: 3600

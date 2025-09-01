@@ -36,12 +36,22 @@ dependencies {
 	// Reactor Kotlin extensions (para 'mono { }', 'flux { }', etc.)
 	implementation("io.projectreactor.kotlin:reactor-kotlin-extensions:1.2.2")
 
+	// Spring Security
+	implementation("org.springframework.boot:spring-boot-starter-security")
+	implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+
 	// Testing
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("io.projectreactor:reactor-test")
 
 	// Checkstyle Kotlin
 	detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.7")
+
+	// Emisión de JWT (firmar tokens)
+	val jjwtVersion = "0.12.5"
+	implementation("io.jsonwebtoken:jjwt-api:$jjwtVersion")
+	runtimeOnly("io.jsonwebtoken:jjwt-impl:$jjwtVersion")
+	runtimeOnly("io.jsonwebtoken:jjwt-jackson:$jjwtVersion") // usa Jackson para claims
 }
 
 
@@ -59,8 +69,6 @@ detekt {
 	buildUponDefaultConfig = true
 	allRules = false
 	config.setFrom("config/checkstyle/detekt.yml")
-	// (Opcional) baseline para silenciar issues existentes:
-	// baseline = file("config/detekt/baseline.xml")
 }
 
 tasks.withType<Detekt>().configureEach {

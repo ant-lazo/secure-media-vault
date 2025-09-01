@@ -6,9 +6,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.reactor.mono
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.http.MediaTypeFactory
 import org.springframework.http.server.reactive.ServerHttpResponse
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import vcm.vault.mq.dto.FileDownloadedEvent
 import vcm.vault.service.DownloadService
+import java.nio.charset.StandardCharsets
 
 @RestController
 @RequestMapping("/api/files")
@@ -30,18 +33,14 @@ class DownloadController(
 ) {
     private val ioScope = CoroutineScope(Dispatchers.IO)
 
-    /**
-     * Soporta Range: ej. Range: bytes=0-1023
-     */
+    // Range: ej. Range: bytes=0-1023
     @GetMapping("/{objectName}")
     fun download(
         @PathVariable objectName: String,
         @RequestHeader(name = HttpHeaders.RANGE, required = false) rangeHeader: String?,
         response: ServerHttpResponse
     ): Mono<Void> =
-        // Usamos mono { } para llamar a la función suspend del service
         mono {
-            // Pide al service el stream segmentado desde MinIO
             val rr = downloadService.streamObject(
                 bucket = bucket,
                 objectName = objectName,
@@ -49,11 +48,23 @@ class DownloadController(
                 bufferFactory = response.bufferFactory()
             )
 
-            // Headers de respuesta
-            response.headers.contentType = MediaType.parseMediaType(rr.contentType ?: "application/octet-stream")
+            // 1) Content-Type: use the storage account and take the extension
+            val mediaType: MediaType =
+                rr.contentType?.let { MediaType.parseMediaType(it) }
+                    ?: MediaTypeFactory.getMediaType(objectName)
+                        .orElse(MediaType.APPLICATION_OCTET_STREAM)
+            response.headers.contentType = mediaType
+
+            // 2) Content-Disposition with filename, take the fullname
+            val fileName = objectName.substringAfterLast('/')
+            val disposition = ContentDisposition.attachment()
+                .filename(fileName, StandardCharsets.UTF_8) // agrega filename*
+                .build()
+            response.headers[HttpHeaders.CONTENT_DISPOSITION] = listOf(disposition.toString())
+
+            // 3) Ranges support
             response.headers[HttpHeaders.ACCEPT_RANGES] = listOf("bytes")
             response.headers[HttpHeaders.CONTENT_LENGTH] = listOf(rr.contentLength.toString())
-
             if (rr.status206) {
                 response.setStatusCode(HttpStatus.PARTIAL_CONTENT)
                 rr.contentRangeHeader?.let { response.headers[HttpHeaders.CONTENT_RANGE] = listOf(it) }
@@ -61,21 +72,19 @@ class DownloadController(
                 response.setStatusCode(HttpStatus.OK)
             }
 
-            // Escribir el body con streaming; al terminar publicamos el evento por RabbitMQ
+            // 4) Public the stream
             response.writeWith(
                 rr.flux.doOnComplete {
                     ioScope.launch {
                         try {
-                            val evt = FileDownloadedEvent(
-                                objectName = objectName,
-                                filename = objectName // si guardaste el filename real en metadata, reemplázalo aquí
+                            rabbitTemplate.convertAndSend(
+                                exchange,
+                                downloadedRoutingKey,
+                                FileDownloadedEvent(objectName = objectName, filename = fileName)
                             )
-                            rabbitTemplate.convertAndSend(exchange, downloadedRoutingKey, evt)
-                        } catch (_: Exception) {
-                            // log opcional; no interrumpir la respuesta ya enviada
-                        }
+                        } catch (_: Exception) { }
                     }
                 }
             )
-        }.flatMap { it } // aplanar el Mono<Mono<Void>> a Mono<Void>
+        }.flatMap { it } // transforms Mono<Mono<Void>> to Mono<Void>
 }
